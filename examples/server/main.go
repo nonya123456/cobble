@@ -1,7 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"github.com/nonya123456/cobble"
+)
 
 func main() {
-	fmt.Println("Hello, World")
+	s := cobble.Server{Addr: ":25565"}
+	s.Run()
 }
