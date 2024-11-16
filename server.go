@@ -1,6 +1,7 @@
 package cobble
 
 import (
+	"io"
 	"log"
 	"net"
 )
@@ -31,5 +32,18 @@ func (s Server) Run() error {
 
 func (s Server) handle(conn net.Conn) {
 	defer conn.Close()
-	log.Printf("New connection from %s\n", conn.RemoteAddr())
+
+	for {
+		p, err := ReadPacket(conn)
+		if err != nil {
+			if err == io.EOF || err.Error() == "unexpected EOF" {
+				log.Printf("Client %s disconnected\n", conn.RemoteAddr())
+				return
+			}
+
+			log.Printf("Error reading packet from %s: %v\n", conn.RemoteAddr(), err)
+		}
+
+		log.Printf("Received packet %v\n", p)
+	}
 }
