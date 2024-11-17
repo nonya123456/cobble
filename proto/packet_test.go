@@ -25,7 +25,7 @@ func TestPacket_Bytes(t *testing.T) {
 				ID:   0,
 				Data: []byte{},
 			},
-			want: []byte{0x00, 0x00},
+			want: []byte{0x01, 0x00},
 		},
 		{
 			name: "Packet with data",
@@ -33,7 +33,7 @@ func TestPacket_Bytes(t *testing.T) {
 				ID:   1,
 				Data: []byte{0x01, 0x02, 0x03},
 			},
-			want: []byte{0x03, 0x01, 0x01, 0x02, 0x03},
+			want: []byte{0x04, 0x01, 0x01, 0x02, 0x03},
 		},
 		{
 			name: "Packet with large ID and data",
@@ -41,7 +41,7 @@ func TestPacket_Bytes(t *testing.T) {
 				ID:   300,
 				Data: []byte{0x0A, 0x0B},
 			},
-			want: []byte{0x02, 0xAC, 0x02, 0x0A, 0x0B},
+			want: []byte{0x04, 0xAC, 0x02, 0x0A, 0x0B},
 		},
 	}
 	for _, tt := range tests {
@@ -70,7 +70,7 @@ func TestReadPacket(t *testing.T) {
 		{
 			name: "Empty packet",
 			args: args{
-				r: bytes.NewReader([]byte{0x00, 0x00}),
+				r: bytes.NewReader([]byte{0x01, 0x00}),
 			},
 			want: proto.Packet{
 				ID:   0,
@@ -81,7 +81,7 @@ func TestReadPacket(t *testing.T) {
 		{
 			name: "Packet with data",
 			args: args{
-				r: bytes.NewReader([]byte{0x03, 0x01, 0x01, 0x02, 0x03}),
+				r: bytes.NewReader([]byte{0x04, 0x01, 0x01, 0x02, 0x03}),
 			},
 			want: proto.Packet{
 				ID:   1,
@@ -92,7 +92,7 @@ func TestReadPacket(t *testing.T) {
 		{
 			name: "Packet with large ID and data",
 			args: args{
-				r: bytes.NewReader([]byte{0x02, 0xAC, 0x02, 0x0A, 0x0B}),
+				r: bytes.NewReader([]byte{0x04, 0xAC, 0x02, 0x0A, 0x0B}),
 			},
 			want: proto.Packet{
 				ID:   300,

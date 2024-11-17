@@ -1,6 +1,15 @@
 package proto
 
-import "io"
+import (
+	"errors"
+	"io"
+)
+
+var (
+	ErrZeroDataLength      = errors.New("zero data length")
+	ErrInvalidDataLength   = errors.New("invalid data length")
+	ErrInvalidPacketLength = errors.New("invalid packet length")
+)
 
 type Packet struct {
 	ID   VarInt
@@ -10,7 +19,7 @@ type Packet struct {
 func (p Packet) Bytes() []byte {
 	idBytes := p.ID.Bytes()
 	dataBytes := p.Data
-	length := VarInt(len(dataBytes)).Bytes()
+	length := VarInt(len(idBytes) + len(dataBytes)).Bytes()
 	return append(append(length, idBytes...), dataBytes...)
 }
 
@@ -25,9 +34,13 @@ func ReadPacket(r io.Reader) (Packet, error) {
 		return Packet{}, err
 	}
 
-	data := make([]byte, length)
-	_, err = io.ReadFull(r, data)
-	if err != nil {
+	dataLen := int(length) - len(id.Bytes())
+	if dataLen < 0 {
+		return Packet{}, ErrInvalidPacketLength
+	}
+
+	data := make([]byte, dataLen)
+	if _, err = io.ReadFull(r, data); err != nil {
 		return Packet{}, err
 	}
 

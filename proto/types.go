@@ -1,6 +1,9 @@
 package proto
 
-import "io"
+import (
+	"encoding/binary"
+	"io"
+)
 
 type VarInt int32
 
@@ -59,4 +62,37 @@ func ReadString(r io.Reader) (String, error) {
 	}
 
 	return String(data), nil
+}
+
+type Long int64
+
+func (l Long) Bytes() []byte {
+	buffer := make([]byte, 8)
+	binary.BigEndian.PutUint64(buffer, uint64(l))
+	return buffer
+}
+
+func ReadLong(r io.Reader) (Long, error) {
+	buffer := make([]byte, 8)
+	if _, err := io.ReadFull(r, buffer); err != nil {
+		return 0, err
+	}
+
+	return Long(binary.BigEndian.Uint64(buffer)), nil
+}
+
+type UnsignedShort uint16
+
+func (u UnsignedShort) Bytes() []byte {
+	buffer := make([]byte, 2)
+	binary.BigEndian.PutUint16(buffer, uint16(u))
+	return buffer
+}
+
+func ReadUnsignedShort(r io.Reader) (UnsignedShort, error) {
+	buffer := make([]byte, 2)
+	if _, err := io.ReadFull(r, buffer); err != nil {
+		return 0, err
+	}
+	return UnsignedShort(binary.BigEndian.Uint16(buffer)), nil
 }

@@ -196,3 +196,197 @@ func TestReadString(t *testing.T) {
 		})
 	}
 }
+
+func TestLong_Bytes(t *testing.T) {
+	tests := []struct {
+		name string
+		l    proto.Long
+		want []byte
+	}{
+		{
+			name: "Zero",
+			l:    0,
+			want: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		},
+		{
+			name: "Small positive number",
+			l:    1,
+			want: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01},
+		},
+		{
+			name: "Large positive number",
+			l:    9223372036854775807,
+			want: []byte{0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+		},
+		{
+			name: "Small negative number",
+			l:    -1,
+			want: []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+		},
+		{
+			name: "Large negative number",
+			l:    -9223372036854775808,
+			want: []byte{0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.l.Bytes(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Long.Bytes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReadLong(t *testing.T) {
+	type args struct {
+		r io.Reader
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    proto.Long
+		wantErr bool
+	}{
+		{
+			name:    "Zero",
+			args:    args{bytes.NewReader([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})},
+			want:    0,
+			wantErr: false,
+		},
+		{
+			name:    "Small positive number",
+			args:    args{bytes.NewReader([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})},
+			want:    1,
+			wantErr: false,
+		},
+		{
+			name:    "Large positive number",
+			args:    args{bytes.NewReader([]byte{0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF})},
+			want:    9223372036854775807,
+			wantErr: false,
+		},
+		{
+			name:    "Small negative number",
+			args:    args{bytes.NewReader([]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF})},
+			want:    -1,
+			wantErr: false,
+		},
+		{
+			name:    "Large negative number",
+			args:    args{bytes.NewReader([]byte{0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})},
+			want:    -9223372036854775808,
+			wantErr: false,
+		},
+		{
+			name:    "Truncated long (less than 8 bytes)",
+			args:    args{bytes.NewReader([]byte{0x00, 0x00, 0x00, 0x00})},
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:    "Empty reader",
+			args:    args{bytes.NewReader([]byte{})},
+			want:    0,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := proto.ReadLong(tt.args.r)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReadLong() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ReadLong() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestUnsignedShort_Bytes(t *testing.T) {
+	tests := []struct {
+		name string
+		u    proto.UnsignedShort
+		want []byte
+	}{
+		{
+			name: "Minimum value",
+			u:    0,
+			want: []byte{0x00, 0x00},
+		},
+		{
+			name: "Maximum value",
+			u:    65535,
+			want: []byte{0xFF, 0xFF},
+		},
+		{
+			name: "Typical port",
+			u:    25565,
+			want: []byte{0x63, 0xDD},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.u.Bytes(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("UnsignedShort.Bytes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReadUnsignedShort(t *testing.T) {
+	type args struct {
+		r io.Reader
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    proto.UnsignedShort
+		wantErr bool
+	}{
+		{
+			name:    "Minimum value",
+			args:    args{bytes.NewReader([]byte{0x00, 0x00})},
+			want:    0,
+			wantErr: false,
+		},
+		{
+			name:    "Maximum value",
+			args:    args{bytes.NewReader([]byte{0xFF, 0xFF})},
+			want:    65535,
+			wantErr: false,
+		},
+		{
+			name:    "Typical port value",
+			args:    args{bytes.NewReader([]byte{0x63, 0xDD})},
+			want:    25565,
+			wantErr: false,
+		},
+		{
+			name:    "Truncated data (only 1 byte)",
+			args:    args{bytes.NewReader([]byte{0x63})},
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:    "Empty reader",
+			args:    args{bytes.NewReader([]byte{})},
+			want:    0,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := proto.ReadUnsignedShort(tt.args.r)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReadUnsignedShort() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ReadUnsignedShort() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
