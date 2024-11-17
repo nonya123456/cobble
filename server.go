@@ -4,6 +4,8 @@ import (
 	"io"
 	"log"
 	"net"
+
+	"github.com/nonya123456/cobble/proto"
 )
 
 type Server struct {
@@ -34,7 +36,7 @@ func (s Server) handle(conn net.Conn) {
 	defer conn.Close()
 
 	for {
-		p, err := ReadPacket(conn)
+		p, err := proto.ReadPacket(conn)
 		if err != nil {
 			if err == io.EOF || err.Error() == "unexpected EOF" {
 				log.Printf("Client %s disconnected\n", conn.RemoteAddr())
