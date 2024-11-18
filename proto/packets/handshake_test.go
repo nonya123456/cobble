@@ -77,7 +77,7 @@ func TestHandshake_ReadFrom(t *testing.T) {
 				t.Errorf("Handshake.ReadFrom() = %v, want %v", got, tt.want)
 			}
 			if !reflect.DeepEqual(*h, tt.wantModified) {
-				t.Errorf("Long.WriteTo() = %v, want %v", *h, tt.wantModified)
+				t.Errorf("Handshake.ReadFrom() h = %v, wantModified %v", *h, tt.wantModified)
 			}
 		})
 	}
