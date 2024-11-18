@@ -5,7 +5,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/nonya123456/cobble/proto"
+	"github.com/nonya123456/cobble/proto/packets"
 )
 
 type Server struct {
@@ -35,10 +35,10 @@ func (s Server) Run() error {
 func (s Server) handle(conn net.Conn) {
 	defer conn.Close()
 
-	state := proto.StateHandshaking
+	state := packets.StateHandshaking
 
 	for {
-		p, err := proto.ReadPacket(conn)
+		id, err := packets.ReadPacketID(conn)
 		if err != nil {
 			if err == io.EOF || err.Error() == "unexpected EOF" {
 				log.Printf("Client %s disconnected\n", conn.RemoteAddr())
@@ -49,46 +49,55 @@ func (s Server) handle(conn net.Conn) {
 		}
 
 		switch state {
-		case proto.StateHandshaking:
-			switch p.ID {
-			case proto.HandshakeID:
-				handshake, err := proto.UnmarshalHandshake(p.Data)
-				if err != nil {
-					log.Printf("Failed to unmarshal handshake: %v\n", err)
+		case packets.StateHandshaking:
+			switch id {
+			case packets.HandshakeID:
+				var handshake packets.Handshake
+				if _, err := handshake.ReadFrom(conn); err != nil {
+					log.Printf("Failed to read handshake: %v\n", err)
 					continue
 				}
 
-				if handshake.NextState == proto.StateStatus {
-					state = proto.StateStatus
+				if handshake.NextState == packets.StateStatus {
+					state = packets.StateStatus
 					log.Printf("Client %s entered Status state\n", conn.RemoteAddr())
-				} else if handshake.NextState == proto.StateLogin {
-					state = proto.StateLogin
+				} else if handshake.NextState == packets.StateLogin {
+					state = packets.StateLogin
 					log.Printf("Client %s entered Login state\n", conn.RemoteAddr())
 				} else {
 					log.Printf("Invalid next state: %d from %s\n", handshake.NextState, conn.RemoteAddr())
 					continue
 				}
 			}
-		case proto.StateStatus:
-			switch p.ID {
-			case proto.StatusRequestID:
-				res := proto.StatusResponse{JSONResponse: proto.String(`{"version":{"name":"1.23.1","protocol": 768}}`)}
-				_, err := conn.Write(res.Packet().Bytes())
-				if err != nil {
-					log.Printf("Failed to write status response: %v\n", err)
-				}
-
-			case proto.PingRequestID:
-				req, err := proto.UnMarshalPingRequest(p.Data)
-				if err != nil {
-					log.Printf("Failed to unmarshal ping request: %v\n", err)
+		case packets.StateStatus:
+			switch id {
+			case packets.StatusRequestID:
+				var req packets.StatusRequest
+				if _, err := req.ReadFrom(conn); err != nil {
+					log.Printf("Failed to read status request: %v\n", err)
 					continue
 				}
 
-				res := proto.PingResponse{Payload: req.Payload}
-				conn.Write(res.Packet().Bytes())
+				res := packets.StatusResponse{JSONResponse: `{"version":{"name":"1.23.1","protocol": 768}}`}
+				if err := packets.WritePacket(conn, &res); err != nil {
+					log.Printf("Failed to write status response: %v\n", err)
+				}
+
+			case packets.PingRequestID:
+				var req packets.PingRequest
+				if _, err := req.ReadFrom(conn); err != nil {
+					log.Printf("Failed to read ping request: %v\n", err)
+					continue
+				}
+
+				payload := req.Payload
+				res := packets.PingResponse{Payload: payload}
+				if err := packets.WritePacket(conn, &res); err != nil {
+					log.Printf("Failed to write ping response: %v\n", err)
+				}
+
 			default:
-				log.Printf("Received unknown packet %v\n", p.ID)
+				log.Printf("Received unknown packet %v\n", id)
 			}
 		}
 	}

@@ -15,6 +15,10 @@ const (
 
 type StatusRequest struct{}
 
+func (s *StatusRequest) ID() int32 {
+	return StatusRequestID
+}
+
 func (s *StatusRequest) ReadFrom(r io.Reader) (int64, error) {
 	return 0, nil
 }
@@ -25,6 +29,10 @@ func (s *StatusRequest) WriteTo(w io.Writer) (int64, error) {
 
 type StatusResponse struct {
 	JSONResponse string
+}
+
+func (s *StatusResponse) ID() int32 {
+	return StatusResponseID
 }
 
 func (s *StatusResponse) ReadFrom(r io.Reader) (int64, error) {
@@ -47,6 +55,10 @@ type PingRequest struct {
 	Payload int64
 }
 
+func (p *PingRequest) ID() int32 {
+	return PingRequestID
+}
+
 func (p *PingRequest) ReadFrom(r io.Reader) (int64, error) {
 	var payload types.Long
 	n, err := readAll(r, &payload)
@@ -65,6 +77,10 @@ func (p *PingRequest) WriteTo(w io.Writer) (int64, error) {
 
 type PingResponse struct {
 	Payload int64
+}
+
+func (p *PingResponse) ID() int32 {
+	return PingResponseID
 }
 
 func (p *PingResponse) ReadFrom(r io.Reader) (int64, error) {
