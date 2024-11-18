@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nonya123456/cobble/types"
+	"github.com/nonya123456/cobble/proto/types"
 )
 
 func TestString_ReadFrom(t *testing.T) {
