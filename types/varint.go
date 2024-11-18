@@ -4,9 +4,10 @@ import "io"
 
 type VarInt int32
 
+// ReadFrom implements io.ReaderFrom.
 func (v *VarInt) ReadFrom(r io.Reader) (int64, error) {
-	var result int32
 	var n int64
+	var result int32
 	var shift uint
 	for {
 		b := make([]byte, 1)
@@ -25,6 +26,7 @@ func (v *VarInt) ReadFrom(r io.Reader) (int64, error) {
 	return n, nil
 }
 
+// WriteTo implements io.WriterTo.
 func (v *VarInt) WriteTo(r io.Writer) (int64, error) {
 	value := *v
 	var p []byte
@@ -43,3 +45,8 @@ func (v *VarInt) WriteTo(r io.Writer) (int64, error) {
 	n, err := r.Write(p)
 	return int64(n), err
 }
+
+var (
+	_ io.WriterTo   = (*VarInt)(nil)
+	_ io.ReaderFrom = (*VarInt)(nil)
+)

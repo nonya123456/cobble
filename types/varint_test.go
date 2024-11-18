@@ -1,10 +1,12 @@
-package types
+package types_test
 
 import (
 	"bytes"
 	"io"
 	"reflect"
 	"testing"
+
+	"github.com/nonya123456/cobble/types"
 )
 
 func TestVarInt_ReadFrom(t *testing.T) {
@@ -12,52 +14,52 @@ func TestVarInt_ReadFrom(t *testing.T) {
 		r io.Reader
 	}
 	tests := []struct {
-		name       string
-		v          *VarInt
-		args       args
-		want       int64
-		wantErr    bool
-		wantResult int32
+		name         string
+		v            *types.VarInt
+		args         args
+		want         int64
+		wantErr      bool
+		wantModified int32
 	}{
 		{
-			name:       "Zero",
-			v:          new(VarInt),
-			args:       args{bytes.NewReader([]byte{0x00})},
-			want:       1,
-			wantErr:    false,
-			wantResult: 0,
+			name:         "Zero",
+			v:            new(types.VarInt),
+			args:         args{bytes.NewReader([]byte{0x00})},
+			want:         1,
+			wantErr:      false,
+			wantModified: 0,
 		},
 		{
-			name:       "Small positive number",
-			v:          new(VarInt),
-			args:       args{bytes.NewReader([]byte{0x01})},
-			want:       1,
-			wantErr:    false,
-			wantResult: 1,
+			name:         "Small positive number",
+			v:            new(types.VarInt),
+			args:         args{bytes.NewReader([]byte{0x01})},
+			want:         1,
+			wantErr:      false,
+			wantModified: 1,
 		},
 		{
-			name:       "Medium positive number",
-			v:          new(VarInt),
-			args:       args{bytes.NewReader([]byte{0xAC, 0x02})},
-			want:       2,
-			wantErr:    false,
-			wantResult: 300,
+			name:         "Medium positive number",
+			v:            new(types.VarInt),
+			args:         args{bytes.NewReader([]byte{0xAC, 0x02})},
+			want:         2,
+			wantErr:      false,
+			wantModified: 300,
 		},
 		{
-			name:       "Large positive number",
-			v:          new(VarInt),
-			args:       args{bytes.NewReader([]byte{0xFF, 0xFF, 0xFF, 0xFF, 0x07})},
-			want:       5,
-			wantErr:    false,
-			wantResult: 2147483647,
+			name:         "Large positive number",
+			v:            new(types.VarInt),
+			args:         args{bytes.NewReader([]byte{0xFF, 0xFF, 0xFF, 0xFF, 0x07})},
+			want:         5,
+			wantErr:      false,
+			wantModified: 2147483647,
 		},
 		{
-			name:       "Truncated VarInt",
-			v:          new(VarInt),
-			args:       args{bytes.NewReader([]byte{0xFF})},
-			want:       1,
-			wantErr:    true,
-			wantResult: 0,
+			name:         "Truncated VarInt",
+			v:            new(types.VarInt),
+			args:         args{bytes.NewReader([]byte{0xFF})},
+			want:         1,
+			wantErr:      true,
+			wantModified: 0,
 		},
 	}
 	for _, tt := range tests {
@@ -70,8 +72,8 @@ func TestVarInt_ReadFrom(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("VarInt.ReadFrom() = %v, want %v", got, tt.want)
 			}
-			if int32(*tt.v) != tt.wantResult {
-				t.Errorf("VarInt.ReadFrom() modified v = %v, want %v", *tt.v, tt.wantResult)
+			if int32(*tt.v) != tt.wantModified {
+				t.Errorf("VarInt.ReadFrom() modified v = %v, want %v", *tt.v, tt.wantModified)
 			}
 		})
 	}
@@ -80,7 +82,7 @@ func TestVarInt_ReadFrom(t *testing.T) {
 func TestVarInt_WriteTo(t *testing.T) {
 	tests := []struct {
 		name    string
-		v       *VarInt
+		v       *types.VarInt
 		want    int64
 		wantR   []byte
 		wantErr bool
@@ -132,7 +134,7 @@ func TestVarInt_WriteTo(t *testing.T) {
 	}
 }
 
-func newVarInt(i int32) *VarInt {
-	v := VarInt(i)
+func newVarInt(i int32) *types.VarInt {
+	v := types.VarInt(i)
 	return &v
 }
