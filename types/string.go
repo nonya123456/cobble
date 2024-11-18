@@ -4,7 +4,6 @@ import "io"
 
 type String string
 
-// ReadFrom implements io.ReaderFrom.
 func (s *String) ReadFrom(r io.Reader) (int64, error) {
 	var length VarInt
 	n1, err := length.ReadFrom(r)
@@ -22,7 +21,6 @@ func (s *String) ReadFrom(r io.Reader) (int64, error) {
 	return n1 + int64(n2), nil
 }
 
-// WriteTo implements io.WriterTo.
 func (s *String) WriteTo(w io.Writer) (int64, error) {
 	data := []byte(*s)
 	length := VarInt(len(data))
@@ -39,8 +37,3 @@ func (s *String) WriteTo(w io.Writer) (int64, error) {
 
 	return n1 + int64(n2), nil
 }
-
-var (
-	_ io.WriterTo   = (*String)(nil)
-	_ io.ReaderFrom = (*String)(nil)
-)
