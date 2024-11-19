@@ -16,17 +16,6 @@ type Handshake struct {
 	NextState       State
 }
 
-type State int32
-
-const (
-	StateHandshaking State = iota
-	StateStatus
-	StateLogin
-	StateTransfer
-)
-
-var allStates = map[State]struct{}{StateHandshaking: {}, StateStatus: {}, StateLogin: {}, StateTransfer: {}}
-
 var (
 	ErrInvalidState = errors.New("invalid state")
 )
@@ -39,21 +28,22 @@ func (h *Handshake) ReadFrom(r io.Reader) (int64, error) {
 	var protocolVersion types.VarInt
 	var serverAddress types.String
 	var serverPort types.UnsignedShort
-	var nextState types.VarInt
+	var nextStateInt types.VarInt
 
-	n, err := readAll(r, &protocolVersion, &serverAddress, &serverPort, &nextState)
+	n, err := readAll(r, &protocolVersion, &serverAddress, &serverPort, &nextStateInt)
 	if err != nil {
 		return n, err
 	}
 
-	if _, ok := allStates[State(nextState)]; !ok {
+	nextState := State(nextStateInt)
+	if !nextState.IsValid() {
 		return n, ErrInvalidState
 	}
 
 	h.ProtocolVersion = int32(protocolVersion)
 	h.ServerAddress = string(serverAddress)
 	h.ServerPort = uint16(serverPort)
-	h.NextState = State(nextState)
+	h.NextState = nextState
 	return n, nil
 }
 

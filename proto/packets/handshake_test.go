@@ -44,6 +44,14 @@ func TestHandshake_ReadFrom(t *testing.T) {
 			wantModified: packets.Handshake{ProtocolVersion: 4, ServerAddress: "localhost", ServerPort: 8080, NextState: 2},
 		},
 		{
+			name:         "Valid handshake (invalid state)",
+			fields:       fields{},
+			args:         args{bytes.NewReader([]byte{0x04, 0x09, 'l', 'o', 'c', 'a', 'l', 'h', 'o', 's', 't', 0x1F, 0x90, 0x05})},
+			want:         14,
+			wantErr:      true,
+			wantModified: packets.Handshake{},
+		},
+		{
 			name:         "Invalid handshake (truncated data)",
 			fields:       fields{},
 			args:         args{bytes.NewReader([]byte{0x04, 0x09})},
