@@ -1,4 +1,4 @@
-package packets_test
+package handshaking_test
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nonya123456/cobble/proto/packets"
+	"github.com/nonya123456/cobble/proto/handshaking"
 )
 
 func TestHandshake_ReadFrom(t *testing.T) {
@@ -14,7 +14,7 @@ func TestHandshake_ReadFrom(t *testing.T) {
 		ProtocolVersion int32
 		ServerAddress   string
 		ServerPort      uint16
-		NextState       packets.State
+		NextState       int32
 	}
 	type args struct {
 		r io.Reader
@@ -25,7 +25,7 @@ func TestHandshake_ReadFrom(t *testing.T) {
 		args         args
 		want         int64
 		wantErr      bool
-		wantModified packets.Handshake
+		wantModified handshaking.Handshake
 	}{
 		{
 			name:         "Valid handshake (status request)",
@@ -33,7 +33,7 @@ func TestHandshake_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0x04, 0x09, 'l', 'o', 'c', 'a', 'l', 'h', 'o', 's', 't', 0x1F, 0x90, 0x01})},
 			want:         14,
 			wantErr:      false,
-			wantModified: packets.Handshake{ProtocolVersion: 4, ServerAddress: "localhost", ServerPort: 8080, NextState: 1},
+			wantModified: handshaking.Handshake{ProtocolVersion: 4, ServerAddress: "localhost", ServerPort: 8080, NextState: 1},
 		},
 		{
 			name:         "Valid handshake (login request)",
@@ -41,15 +41,7 @@ func TestHandshake_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0x04, 0x09, 'l', 'o', 'c', 'a', 'l', 'h', 'o', 's', 't', 0x1F, 0x90, 0x02})},
 			want:         14,
 			wantErr:      false,
-			wantModified: packets.Handshake{ProtocolVersion: 4, ServerAddress: "localhost", ServerPort: 8080, NextState: 2},
-		},
-		{
-			name:         "Valid handshake (invalid state)",
-			fields:       fields{},
-			args:         args{bytes.NewReader([]byte{0x04, 0x09, 'l', 'o', 'c', 'a', 'l', 'h', 'o', 's', 't', 0x1F, 0x90, 0x05})},
-			want:         14,
-			wantErr:      true,
-			wantModified: packets.Handshake{},
+			wantModified: handshaking.Handshake{ProtocolVersion: 4, ServerAddress: "localhost", ServerPort: 8080, NextState: 2},
 		},
 		{
 			name:         "Invalid handshake (truncated data)",
@@ -57,7 +49,7 @@ func TestHandshake_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0x04, 0x09})},
 			want:         2,
 			wantErr:      true,
-			wantModified: packets.Handshake{},
+			wantModified: handshaking.Handshake{},
 		},
 		{
 			name:         "Invalid handshake (malformed VarInt)",
@@ -65,12 +57,12 @@ func TestHandshake_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0xFF})},
 			want:         1,
 			wantErr:      true,
-			wantModified: packets.Handshake{},
+			wantModified: handshaking.Handshake{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := &packets.Handshake{
+			h := &handshaking.Handshake{
 				ProtocolVersion: tt.fields.ProtocolVersion,
 				ServerAddress:   tt.fields.ServerAddress,
 				ServerPort:      tt.fields.ServerPort,
@@ -96,7 +88,7 @@ func TestHandshake_WriteTo(t *testing.T) {
 		ProtocolVersion int32
 		ServerAddress   string
 		ServerPort      uint16
-		NextState       packets.State
+		NextState       int32
 	}
 	tests := []struct {
 		name    string
@@ -129,7 +121,7 @@ func TestHandshake_WriteTo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := &packets.Handshake{
+			h := &handshaking.Handshake{
 				ProtocolVersion: tt.fields.ProtocolVersion,
 				ServerAddress:   tt.fields.ServerAddress,
 				ServerPort:      tt.fields.ServerPort,

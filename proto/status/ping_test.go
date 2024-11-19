@@ -1,4 +1,4 @@
-package packets_test
+package status_test
 
 import (
 	"bytes"
@@ -6,198 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nonya123456/cobble/proto/packets"
+	"github.com/nonya123456/cobble/proto/status"
 )
-
-func TestStatusRequest_ReadFrom(t *testing.T) {
-	type args struct {
-		r io.Reader
-	}
-	tests := []struct {
-		name    string
-		s       *packets.StatusRequest
-		args    args
-		wantN   int64
-		wantErr bool
-	}{
-		{
-			name:    "Valid",
-			s:       new(packets.StatusRequest),
-			args:    args{bytes.NewReader([]byte{})},
-			wantN:   0,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &packets.StatusRequest{}
-			gotN, err := s.ReadFrom(tt.args.r)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("StatusRequest.ReadFrom() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotN != tt.wantN {
-				t.Errorf("StatusRequest.ReadFrom() = %v, want %v", gotN, tt.wantN)
-			}
-		})
-	}
-}
-
-func TestStatusRequest_WriteTo(t *testing.T) {
-	tests := []struct {
-		name    string
-		s       *packets.StatusRequest
-		wantN   int64
-		wantW   []byte
-		wantErr bool
-	}{
-		{
-			name:    "Valid",
-			s:       new(packets.StatusRequest),
-			wantN:   0,
-			wantW:   nil,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &packets.StatusRequest{}
-			w := &bytes.Buffer{}
-			gotN, err := s.WriteTo(w)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("StatusRequest.WriteTo() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotN != tt.wantN {
-				t.Errorf("StatusRequest.WriteTo() = %v, want %v", gotN, tt.wantN)
-			}
-			if gotW := w.Bytes(); !reflect.DeepEqual(gotW, tt.wantW) {
-				t.Errorf("StatusRequest.WriteTo() = %v, want %v", gotW, tt.wantW)
-			}
-		})
-	}
-}
-
-func TestStatusResponse_ReadFrom(t *testing.T) {
-	type fields struct {
-		JSONResponse string
-	}
-	type args struct {
-		r io.Reader
-	}
-	tests := []struct {
-		name         string
-		fields       fields
-		args         args
-		wantN        int64
-		wantErr      bool
-		wantModified packets.StatusResponse
-	}{
-		{
-			name:   "Valid JSON response",
-			fields: fields{},
-			args: args{bytes.NewReader(
-				append([]byte{0x7D}, []byte(`{"version":{"name":"1.16.5","protocol":754},"players":{"max":100,"online":5},"description":{"text":"Welcome to the server!"}}`)...)),
-			},
-			wantN:        126,
-			wantErr:      false,
-			wantModified: packets.StatusResponse{JSONResponse: `{"version":{"name":"1.16.5","protocol":754},"players":{"max":100,"online":5},"description":{"text":"Welcome to the server!"}}`},
-		},
-		{
-			name:         "Empty JSON response",
-			fields:       fields{},
-			args:         args{bytes.NewReader(append([]byte{0x02}, []byte(`{}`)...))},
-			wantN:        3,
-			wantErr:      false,
-			wantModified: packets.StatusResponse{JSONResponse: `{}`},
-		},
-		{
-			name:    "Invalid JSON response",
-			fields:  fields{},
-			args:    args{bytes.NewReader([]byte(`{invalid-json}`))},
-			wantN:   14,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &packets.StatusResponse{
-				JSONResponse: tt.fields.JSONResponse,
-			}
-			gotN, err := s.ReadFrom(tt.args.r)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("StatusResponse.ReadFrom() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotN != tt.wantN {
-				t.Errorf("StatusResponse.ReadFrom() = %v, want %v", gotN, tt.wantN)
-			}
-			if !reflect.DeepEqual(*s, tt.wantModified) {
-				t.Errorf("StatusResponse.ReadFrom() s = %v, wantModified %v", *s, tt.wantModified)
-			}
-		})
-	}
-}
-
-func TestStatusResponse_WriteTo(t *testing.T) {
-	type fields struct {
-		JSONResponse string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		wantN   int64
-		wantW   []byte
-		wantErr bool
-	}{
-		{
-			name: "Valid JSON response",
-			fields: fields{
-				JSONResponse: `{"version":{"name":"1.16.5","protocol":754},"players":{"max":100,"online":5},"description":{"text":"Welcome to the server!"}}`,
-			},
-			wantN:   126,
-			wantW:   append([]byte{0x7D}, []byte(`{"version":{"name":"1.16.5","protocol":754},"players":{"max":100,"online":5},"description":{"text":"Welcome to the server!"}}`)...),
-			wantErr: false,
-		},
-		{
-			name: "Empty JSON response",
-			fields: fields{
-				JSONResponse: `{}`,
-			},
-			wantN:   3,
-			wantW:   append([]byte{0x02}, []byte(`{}`)...),
-			wantErr: false,
-		},
-		{
-			name: "Invalid JSON response",
-			fields: fields{
-				JSONResponse: "",
-			},
-			wantN:   1,
-			wantW:   []byte{0x00},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &packets.StatusResponse{
-				JSONResponse: tt.fields.JSONResponse,
-			}
-			w := &bytes.Buffer{}
-			gotN, err := s.WriteTo(w)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("StatusResponse.WriteTo() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotN != tt.wantN {
-				t.Errorf("StatusResponse.WriteTo() = %v, want %v", gotN, tt.wantN)
-			}
-			if gotW := w.Bytes(); !reflect.DeepEqual(gotW, tt.wantW) {
-				t.Errorf("StatusResponse.WriteTo() = %v, want %v", gotW, tt.wantW)
-			}
-		})
-	}
-}
 
 func TestPingRequest_ReadFrom(t *testing.T) {
 	type fields struct {
@@ -212,7 +22,7 @@ func TestPingRequest_ReadFrom(t *testing.T) {
 		args         args
 		wantN        int64
 		wantErr      bool
-		wantModified packets.PingRequest
+		wantModified status.PingRequest
 	}{
 		{
 			name:         "Valid payload",
@@ -220,7 +30,7 @@ func TestPingRequest_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})},
 			wantN:        8,
 			wantErr:      false,
-			wantModified: packets.PingRequest{Payload: 1},
+			wantModified: status.PingRequest{Payload: 1},
 		},
 		{
 			name:         "Zero payload",
@@ -228,7 +38,7 @@ func TestPingRequest_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})},
 			wantN:        8,
 			wantErr:      false,
-			wantModified: packets.PingRequest{Payload: 0},
+			wantModified: status.PingRequest{Payload: 0},
 		},
 		{
 			name:         "Negative payload",
@@ -236,7 +46,7 @@ func TestPingRequest_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF})},
 			wantN:        8,
 			wantErr:      false,
-			wantModified: packets.PingRequest{Payload: -1},
+			wantModified: status.PingRequest{Payload: -1},
 		},
 		{
 			name:         "Invalid data length",
@@ -244,7 +54,7 @@ func TestPingRequest_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0x00, 0x00, 0x00, 0x00})},
 			wantN:        4,
 			wantErr:      true,
-			wantModified: packets.PingRequest{},
+			wantModified: status.PingRequest{},
 		},
 		{
 			name:         "Empty data",
@@ -252,12 +62,12 @@ func TestPingRequest_ReadFrom(t *testing.T) {
 			args:         args{r: bytes.NewReader([]byte{})},
 			wantN:        0,
 			wantErr:      true,
-			wantModified: packets.PingRequest{},
+			wantModified: status.PingRequest{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &packets.PingRequest{
+			p := &status.PingRequest{
 				Payload: tt.fields.Payload,
 			}
 			gotN, err := p.ReadFrom(tt.args.r)
@@ -310,7 +120,7 @@ func TestPingRequest_WriteTo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &packets.PingRequest{
+			p := &status.PingRequest{
 				Payload: tt.fields.Payload,
 			}
 			w := &bytes.Buffer{}
@@ -342,7 +152,7 @@ func TestPingResponse_ReadFrom(t *testing.T) {
 		args         args
 		want         int64
 		wantErr      bool
-		wantModified packets.PingResponse
+		wantModified status.PingResponse
 	}{
 		{
 			name:         "Valid payload",
@@ -350,7 +160,7 @@ func TestPingResponse_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})},
 			want:         8,
 			wantErr:      false,
-			wantModified: packets.PingResponse{Payload: 1},
+			wantModified: status.PingResponse{Payload: 1},
 		},
 		{
 			name:         "Zero payload",
@@ -358,7 +168,7 @@ func TestPingResponse_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})},
 			want:         8,
 			wantErr:      false,
-			wantModified: packets.PingResponse{Payload: 0},
+			wantModified: status.PingResponse{Payload: 0},
 		},
 		{
 			name:         "Negative payload",
@@ -366,7 +176,7 @@ func TestPingResponse_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF})},
 			want:         8,
 			wantErr:      false,
-			wantModified: packets.PingResponse{Payload: -1},
+			wantModified: status.PingResponse{Payload: -1},
 		},
 		{
 			name:         "Invalid data length",
@@ -374,7 +184,7 @@ func TestPingResponse_ReadFrom(t *testing.T) {
 			args:         args{bytes.NewReader([]byte{0x00, 0x00, 0x00, 0x00})},
 			want:         4,
 			wantErr:      true,
-			wantModified: packets.PingResponse{},
+			wantModified: status.PingResponse{},
 		},
 		{
 			name:         "Empty data",
@@ -382,12 +192,12 @@ func TestPingResponse_ReadFrom(t *testing.T) {
 			args:         args{r: bytes.NewReader([]byte{})},
 			want:         0,
 			wantErr:      true,
-			wantModified: packets.PingResponse{},
+			wantModified: status.PingResponse{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &packets.PingResponse{
+			p := &status.PingResponse{
 				Payload: tt.fields.Payload,
 			}
 			got, err := p.ReadFrom(tt.args.r)
@@ -440,7 +250,7 @@ func TestPingResponse_WriteTo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &packets.PingResponse{
+			p := &status.PingResponse{
 				Payload: tt.fields.Payload,
 			}
 			w := &bytes.Buffer{}
