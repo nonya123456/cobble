@@ -1,4 +1,4 @@
-package packets_test
+package proto_test
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nonya123456/cobble/proto/packets"
+	"github.com/nonya123456/cobble/proto"
 )
 
 func TestReadPacket(t *testing.T) {
@@ -16,19 +16,19 @@ func TestReadPacket(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    packets.Packet
+		want    proto.Packet
 		wantErr bool
 	}{
 		{
 			name:    "Simple packet",
 			args:    args{bytes.NewReader(append([]byte{0x0F, 0x01}, []byte("Hello, Packet!")...))},
-			want:    packets.Packet{ID: 1, Data: []byte("Hello, Packet!")},
+			want:    proto.Packet{ID: 1, Data: []byte("Hello, Packet!")},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := packets.ReadPacket(tt.args.r)
+			got, err := proto.ReadPacket(tt.args.r)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ReadPacket() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -64,7 +64,7 @@ func TestWritePacket(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &bytes.Buffer{}
-			if err := packets.WritePacket(w, tt.args.id, tt.args.p); (err != nil) != tt.wantErr {
+			if err := proto.WritePacket(w, tt.args.id, tt.args.p); (err != nil) != tt.wantErr {
 				t.Errorf("WritePacket() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}

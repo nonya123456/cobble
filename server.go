@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/nonya123456/cobble/proto"
 	"github.com/nonya123456/cobble/proto/packets"
 )
 
@@ -39,7 +40,7 @@ func (s Server) handle(conn net.Conn) {
 	state := packets.StateHandshaking
 
 	for {
-		p, err := packets.ReadPacket(conn)
+		p, err := proto.ReadPacket(conn)
 		if err != nil {
 			if err == io.EOF || err.Error() == "unexpected EOF" {
 				log.Printf("Client %s disconnected\n", conn.RemoteAddr())
@@ -82,7 +83,7 @@ func (s Server) handle(conn net.Conn) {
 				}
 
 				res := packets.StatusResponse{JSONResponse: `{"version":{"name":"1.23.1","protocol": 768}}`}
-				if err := packets.WritePacket(conn, packets.StatusResponseID, &res); err != nil {
+				if err := proto.WritePacket(conn, packets.StatusResponseID, &res); err != nil {
 					log.Printf("Failed to write status response: %v\n", err)
 				}
 
@@ -95,7 +96,7 @@ func (s Server) handle(conn net.Conn) {
 
 				payload := req.Payload
 				res := packets.PingResponse{Payload: payload}
-				if err := packets.WritePacket(conn, packets.PingResponseID, &res); err != nil {
+				if err := proto.WritePacket(conn, packets.PingResponseID, &res); err != nil {
 					log.Printf("Failed to write ping response: %v\n", err)
 				}
 
