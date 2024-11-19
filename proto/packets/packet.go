@@ -2,35 +2,54 @@ package packets
 
 import (
 	"bytes"
+	"errors"
 	"io"
 
 	"github.com/nonya123456/cobble/proto/types"
 )
 
-type Packet interface {
-	ID() int32
-	io.ReaderFrom
-	io.WriterTo
+var (
+	ErrInvalidPacketLength = errors.New("invalid packet length")
+)
+
+type Packet struct {
+	ID   int32
+	Data []byte
 }
 
-func ReadPacketID(r io.Reader) (int32, error) {
-	var length types.VarInt
-	if _, err := length.ReadFrom(r); err != nil {
-		return 0, err
+func ReadPacket(r io.Reader) (Packet, error) {
+	var lengthProto types.VarInt
+	if _, err := lengthProto.ReadFrom(r); err != nil {
+		return Packet{}, err
 	}
+	length := int(lengthProto)
 
 	var id types.VarInt
-	if _, err := id.ReadFrom(r); err != nil {
-		return 0, err
+	idLength, err := id.ReadFrom(r)
+	if err != nil {
+		return Packet{}, err
 	}
 
-	return int32(id), nil
+	dataLength := length - int(idLength)
+	if dataLength < 0 {
+		return Packet{}, ErrInvalidPacketLength
+	}
+
+	data := make([]byte, dataLength)
+	if _, err := io.ReadFull(r, data); err != nil {
+		return Packet{}, err
+	}
+
+	return Packet{
+		ID:   int32(id),
+		Data: data,
+	}, nil
 }
 
-func WritePacket(w io.Writer, p Packet) error {
+func WritePacket(w io.Writer, id int32, p io.WriterTo) error {
 	buf := bytes.Buffer{}
-	id := types.VarInt(p.ID())
-	if _, err := id.WriteTo(&buf); err != nil {
+	idProto := types.VarInt(id)
+	if _, err := idProto.WriteTo(&buf); err != nil {
 		return err
 	}
 	if _, err := p.WriteTo(&buf); err != nil {

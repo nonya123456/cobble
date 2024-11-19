@@ -1,6 +1,7 @@
 package cobble
 
 import (
+	"bytes"
 	"io"
 	"log"
 	"net"
@@ -38,7 +39,7 @@ func (s Server) handle(conn net.Conn) {
 	state := packets.StateHandshaking
 
 	for {
-		id, err := packets.ReadPacketID(conn)
+		p, err := packets.ReadPacket(conn)
 		if err != nil {
 			if err == io.EOF || err.Error() == "unexpected EOF" {
 				log.Printf("Client %s disconnected\n", conn.RemoteAddr())
@@ -48,12 +49,14 @@ func (s Server) handle(conn net.Conn) {
 			log.Printf("Error reading packet from %s: %v\n", conn.RemoteAddr(), err)
 		}
 
+		r := bytes.NewReader(p.Data)
+
 		switch state {
 		case packets.StateHandshaking:
-			switch id {
+			switch p.ID {
 			case packets.HandshakeID:
 				var handshake packets.Handshake
-				if _, err := handshake.ReadFrom(conn); err != nil {
+				if _, err := handshake.ReadFrom(r); err != nil {
 					log.Printf("Failed to read handshake: %v\n", err)
 					continue
 				}
@@ -70,34 +73,34 @@ func (s Server) handle(conn net.Conn) {
 				}
 			}
 		case packets.StateStatus:
-			switch id {
+			switch p.ID {
 			case packets.StatusRequestID:
 				var req packets.StatusRequest
-				if _, err := req.ReadFrom(conn); err != nil {
+				if _, err := req.ReadFrom(r); err != nil {
 					log.Printf("Failed to read status request: %v\n", err)
 					continue
 				}
 
 				res := packets.StatusResponse{JSONResponse: `{"version":{"name":"1.23.1","protocol": 768}}`}
-				if err := packets.WritePacket(conn, &res); err != nil {
+				if err := packets.WritePacket(conn, packets.StatusResponseID, &res); err != nil {
 					log.Printf("Failed to write status response: %v\n", err)
 				}
 
 			case packets.PingRequestID:
 				var req packets.PingRequest
-				if _, err := req.ReadFrom(conn); err != nil {
+				if _, err := req.ReadFrom(r); err != nil {
 					log.Printf("Failed to read ping request: %v\n", err)
 					continue
 				}
 
 				payload := req.Payload
 				res := packets.PingResponse{Payload: payload}
-				if err := packets.WritePacket(conn, &res); err != nil {
+				if err := packets.WritePacket(conn, packets.PingResponseID, &res); err != nil {
 					log.Printf("Failed to write ping response: %v\n", err)
 				}
 
 			default:
-				log.Printf("Received unknown packet %v\n", id)
+				log.Printf("Received unknown packet %v\n", p.ID)
 			}
 		}
 	}

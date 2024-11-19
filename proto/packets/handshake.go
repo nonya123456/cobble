@@ -20,10 +20,6 @@ var (
 	ErrInvalidState = errors.New("invalid state")
 )
 
-func (h *Handshake) ID() int32 {
-	return HandshakeID
-}
-
 func (h *Handshake) ReadFrom(r io.Reader) (int64, error) {
 	var protocolVersion types.VarInt
 	var serverAddress types.String
