@@ -5,15 +5,15 @@ import "io"
 type VarInt int32
 
 func (v *VarInt) ReadFrom(r io.Reader) (int64, error) {
-	var n int64
+	var totalRead int64
 	var result int32
 	var shift uint
 	for {
 		b := make([]byte, 1)
 		if _, err := r.Read(b); err != nil {
-			return n, err
+			return totalRead, err
 		}
-		n++
+		totalRead++
 		result |= int32(b[0]&0b01111111) << shift
 		if b[0]&0b10000000 == 0 {
 			break
@@ -22,7 +22,7 @@ func (v *VarInt) ReadFrom(r io.Reader) (int64, error) {
 	}
 
 	*v = VarInt(result)
-	return n, nil
+	return totalRead, nil
 }
 
 func (v *VarInt) WriteTo(r io.Writer) (int64, error) {
